@@ -14,6 +14,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 load_dotenv()
 
+os.environ["GOOGLE_API_KEY"] = (os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY", ""))
+
 st.set_page_config(page_title="Chat with your PDF", page_icon="📄")
 st.title("📄 Chat with your PDF")
 
