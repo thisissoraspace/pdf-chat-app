@@ -9,7 +9,7 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -47,7 +47,7 @@ with st.sidebar:
                 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
                 splits = splitter.split_documents(docs)
 
-                embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+                embedding = FastEmbedEmbeddings()
                 vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
                 retriever = vectorstore.as_retriever()
 
