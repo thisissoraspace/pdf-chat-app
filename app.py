@@ -31,7 +31,7 @@ if "pdf_loaded" not in st.session_state:
     st.session_state.pdf_loaded = False
 
 @st.cache_resource(show_spinner=False)
-def process_pdf(file_bytes):
+def process_pdf(file_bytes, api_key):
     tmp_path = None
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     try:
@@ -56,7 +56,7 @@ def process_pdf(file_bytes):
         )
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
 
         rephrase_prompt = ChatPromptTemplate.from_messages([
             MessagesPlaceholder("chat_history"),
@@ -96,7 +96,7 @@ if not st.session_state.pdf_loaded:
     if uploaded_file:
         with st.spinner("Processing PDF... this may take a moment ⏳"):
             try:
-                rag_chain = process_pdf(uploaded_file.getvalue())
+                rag_chain = process_pdf(uploaded_file.getvalue(), GOOGLE_API_KEY)
                 st.session_state.rag_chain = rag_chain
                 st.session_state.pdf_loaded = True
                 st.rerun()
