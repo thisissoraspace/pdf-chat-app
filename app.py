@@ -7,13 +7,18 @@ from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
+
 load_dotenv()
 
-os.environ["GOOGLE_API_KEY"] = (os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY", ""))
+try:
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+except:
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 st.set_page_config(page_title="Chat with your PDF", page_icon="📄")
 st.title("📄 Chat with your PDF")
@@ -55,53 +60,20 @@ with st.sidebar:
                 rephrase_prompt = ChatPromptTemplate.from_messages([
                     MessagesPlaceholder("chat_history"),
                     ("human", "{input}"),
-                    ("human", "Given the conversation above, rephrase the follow-up question to be standalone.")
+                    ("human", "Rephrase the above as a standalone question.")
                 ])
 
                 answer_prompt = ChatPromptTemplate.from_messages([
-                    ("system", "Answer the question based only on the context below:\n\n{context}"),
+                    ("system", "Answer based only on this context:\n\n{context}"),
                     MessagesPlaceholder("chat_history"),
                     ("human", "{input}"),
                 ])
 
-                history_aware_retriever = create_history_aware_retriever(llm, retriever, rephrase_prompt)
-                combine_docs_chain = create_stuff_documents_chain(llm, answer_prompt)
-                st.session_state.rag_chain = create_retrieval_chain(history_aware_retriever, combine_docs_chain)
-                st.session_state.pdf_loaded = True
+                # ✅ Build chain manually — no langchain.chains needed
+                def get_context(inputs):
+                    rephrased = (rephrase_prompt | llm | StrOutputParser()).invoke(inputs)
+                    docs = retriever.invoke(rephrased)
+                    return "\n\n".join(d.page_content for d in docs)
 
-            finally:
-                if tmp_path and os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
-
-        st.success(f"✅ '{uploaded_file.name}' loaded! Ask away.")
-
-    if st.button("🗑️ Clear chat"):
-        st.session_state.chat_history = []
-        st.session_state.pdf_loaded = False
-        st.session_state.rag_chain = None
-        st.rerun()
-
-# --- Chat UI ---
-for message in st.session_state.chat_history:
-    role = "user" if isinstance(message, HumanMessage) else "assistant"
-    with st.chat_message(role):
-        st.markdown(message.content)
-
-if not st.session_state.pdf_loaded:
-    st.info("👈 Upload a PDF from the sidebar to get started.")
-else:
-    if question := st.chat_input("Ask a question about your PDF..."):
-        with st.chat_message("user"):
-            st.markdown(question)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response = st.session_state.rag_chain.invoke({
-                    "input": question,
-                    "chat_history": st.session_state.chat_history
-                })
-                answer = response["answer"]
-                st.markdown(answer)
-
-        st.session_state.chat_history.append(HumanMessage(content=question))
-        st.session_state.chat_history.append(AIMessage(content=answer))
+                def rag_chain(inputs):
+                    context = get_context(inputs)
