@@ -43,7 +43,7 @@ def process_pdf(file_bytes, api_key):
         docs = loader.load()
 
         # Larger chunks = fewer embeddings = less memory
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=1000)
         splits = splitter.split_documents(docs)
 
         embedding = FastEmbedEmbeddings()
