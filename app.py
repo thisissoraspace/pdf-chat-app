@@ -39,6 +39,9 @@ with st.sidebar:
     if uploaded_file and not st.session_state.pdf_loaded:
         with st.spinner("Processing PDF..."):
             tmp_path = None
+            if uploaded_file and not st.session_state.pdf_loaded:
+                with st.spinner("Processing PDF..."):
+                    tmp_path = None
             try:
                 tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
                 tmp.write(uploaded_file.read())
@@ -68,8 +71,6 @@ with st.sidebar:
                     MessagesPlaceholder("chat_history"),
                     ("human", "{input}"),
                 ])
-
-                # ✅ Build chain manually — no langchain.chains needed
                 def get_context(inputs):
                     rephrased = (rephrase_prompt | llm | StrOutputParser()).invoke(inputs)
                     docs = retriever.invoke(rephrased)
@@ -77,3 +78,15 @@ with st.sidebar:
 
                 def rag_chain(inputs):
                     context = get_context(inputs)
+                    return (answer_prompt | llm | StrOutputParser()).invoke({
+                        "input": inputs["input"],
+                        "chat_history": inputs["chat_history"],
+                        "context": context
+                    })
+
+                st.session_state.rag_chain = rag_chain
+                st.session_state.pdf_loaded = True
+
+            finally:                                          # ← must be at this indent
+                if tmp_path and os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
