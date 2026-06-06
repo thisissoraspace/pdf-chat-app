@@ -19,6 +19,8 @@ try:
 except Exception:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
+st.write("Key loaded:", GOOGLE_API_KEY[:10] if GOOGLE_API_KEY else "EMPTY")
+
 st.set_page_config(page_title="Chat with your PDF", page_icon="📄")
 st.title("📄 Chat with your PDF")
 
