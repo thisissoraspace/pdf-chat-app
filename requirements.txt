@@ -4,8 +4,6 @@ langchain-community>=0.2.0
 langchain-huggingface
 langchain-google-genai
 langchain-text-splitters
-fastembed
-chromadb
 pypdf
 streamlit
 python-dotenv
