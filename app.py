@@ -13,12 +13,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Load API key from Streamlit secrets or .env
 try:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except Exception:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 st.set_page_config(page_title="Chat with your PDF", page_icon="📄")
 st.title("📄 Chat with your PDF")
@@ -42,13 +41,10 @@ def process_pdf(file_bytes, api_key):
         loader = PyPDFLoader(tmp_path)
         docs = loader.load()
 
-        # Larger chunks = fewer embeddings = less memory
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=1000)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
         splits = splitter.split_documents(docs)
 
         embedding = FastEmbedEmbeddings()
-
-        # Use in-memory vectorstore to avoid disk issues
         vectorstore = Chroma.from_documents(
             documents=splits,
             embedding=embedding,
@@ -56,6 +52,7 @@ def process_pdf(file_bytes, api_key):
         )
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
+        # Pass API key directly to avoid environment variable issues
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
 
         rephrase_prompt = ChatPromptTemplate.from_messages([
